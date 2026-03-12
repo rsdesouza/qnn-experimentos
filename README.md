@@ -130,8 +130,8 @@ qnn_experimentos/
 
 **1. Clonar o repositório:**
 ```bash
-git clone https://github.com/<seu-usuario>/qnn_experimentos.git
-cd qnn_experimentos
+git clone https://github.com/rsdesouza/qnn-experimentos.git
+cd qnn-experimentos
 ```
 
 **2. Criar ambiente virtual:**
