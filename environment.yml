@@ -1,0 +1,43 @@
+name: qnn-experimentos
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  # ── Python ─────────────────────────────────────────────────────────────────
+  - python=3.13
+
+  # ── PyTorch com CUDA 12.8 ─────────────────────────────────────────────────
+  - pytorch=2.10.0
+  - torchvision=0.25.0
+  - pytorch-cuda=12.8
+
+  # ── Ciência de Dados ──────────────────────────────────────────────────────
+  - numpy=2.2.5
+  - pandas=2.2.3
+  - scikit-learn=1.6.1
+  - matplotlib=3.9.4
+  - seaborn=0.13.2
+  - tqdm=4.66.1
+
+  # ── Build tools (necessários para pennylane-lightning) ────────────────────
+  - pip
+  - pip:
+      # Computação Quântica
+      - pennylane==0.44.0
+      - pennylane-lightning==0.44.0
+
+      # Dataset médico
+      - medmnist==3.0.0
+
+      # Visualização de circuitos
+      - pylatexenc==2.10
+
+      # ── Cenário 4 apenas (IBM Quantum) — comentar se não usar ─────────────
+      # - qiskit==1.2.4
+      # - qiskit-ibm-runtime==0.29.0
+      # - qiskit-aer==0.15.0
+      # - pennylane-qiskit==0.39.0
+      # - mitiq==0.38.0
