@@ -1,3 +1,15 @@
 .venv
 /venv
 *.log
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+/checkpoints/
