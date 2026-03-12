@@ -1,8 +1,8 @@
 # Redes Neurais Quânticas Aplicadas ao Diagnóstico Assistido de Câncer de Pulmão
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://python.org)
-[![PennyLane](https://img.shields.io/badge/PennyLane-0.44%2B-purple)](https://pennylane.ai)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.10%2B-orange)](https://pytorch.org)
+[![Python](https://img.shields.io/badge/Python-3.13-blue)](https://python.org)
+[![PennyLane](https://img.shields.io/badge/PennyLane-0.44.1-purple)](https://pennylane.ai)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.10.0%2Bcu128-orange)](https://pytorch.org)
 [![CUDA](https://img.shields.io/badge/CUDA-12.8-green)](https://developer.nvidia.com/cuda-toolkit)
 [![License](https://img.shields.io/badge/Licença-MIT-lightgrey)](LICENSE)
 
@@ -19,15 +19,10 @@ Repositório oficial dos experimentos da dissertação de mestrado:
 - [Visão Geral](#visão-geral)
 - [Arquitetura Proposta](#arquitetura-proposta)
 - [Estrutura do Repositório](#estrutura-do-repositório)
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação](#instalação)
+- [Pré-requisitos e Instalação](#pré-requisitos-e-instalação)
 - [Datasets](#datasets)
 - [Experimentos](#experimentos)
-  - [Cenário 1 — Comparação Direta](#cenário-1--comparação-direta)
-  - [Cenário 2 — Impacto do Número de Qubits](#cenário-2--impacto-do-número-de-qubits)
-  - [Cenário 3 — Escalabilidade](#cenário-3--escalabilidade)
-  - [Cenário 4 — Hardware Quântico Real](#cenário-4--hardware-quântico-real-opcional)
-- [Resultados](#resultados)
+- [Artefatos por Experimento](#artefatos-por-experimento)
 - [Reprodutibilidade](#reprodutibilidade)
 - [Ambiente de Execução](#ambiente-de-execução)
 - [Citação](#citação)
@@ -37,9 +32,9 @@ Repositório oficial dos experimentos da dissertação de mestrado:
 
 ## Visão Geral
 
-Este repositório implementa e avalia uma arquitetura híbrida **CNN-VQC** (*Convolutional Neural Network* + *Variational Quantum Circuit*) para classificação binária de nódulos pulmonares em imagens de tórax. O objetivo é investigar a aplicabilidade de **Redes Neurais Quânticas (QNNs)** ao diagnóstico assistido de câncer de pulmão em cenários de Big Data em saúde, comparando o modelo híbrido com redes clássicas de referência.
+Este repositório implementa e avalia arquiteturas híbridas **CNN-VQC** (*Convolutional Neural Network* + *Variational Quantum Circuit*) e uma **QCNN** (*Quantum Convolutional Neural Network*) pura para classificação binária de nódulos pulmonares em imagens de tórax. O objetivo é investigar a aplicabilidade de **Redes Neurais Quânticas (QNNs)** ao diagnóstico assistido de câncer de pulmão em cenários de Big Data em saúde.
 
-**Questão de pesquisa central:**
+**Questão de pesquisa:**
 > Como redes neurais quânticas, em arquiteturas híbridas quântico-clássicas, podem ser aplicadas ao diagnóstico assistido de câncer de pulmão em bases massivas de imagens médicas, e em que medida essas abordagens se comparam a modelos clássicos de Deep Learning em termos de desempenho e viabilidade computacional?
 
 ---
@@ -47,34 +42,34 @@ Este repositório implementa e avalia uma arquitetura híbrida **CNN-VQC** (*Con
 ## Arquitetura Proposta
 
 ```
-[ Imagem de Tórax ]
-        ↓
-┌─────────────────────────┐
-│   1. PRÉ-PROCESSAMENTO  │  224×224px · Normalização ImageNet · Augmentation
-└────────────┬────────────┘
-             ↓
-┌─────────────────────────┐
-│   2. CNN (CLÁSSICA)     │  ResNet-18 / EfficientNet-B0
-│                         │  → vetor 512/1280 dim → redução para 2ⁿ
-└────────────┬────────────┘
-             ↓  ── FRONTEIRA QUÂNTICA ──
-┌─────────────────────────┐
-│   3. ANGLE ENCODING     │  RY(xᵢ)|0⟩  para cada qubit i
-└────────────┬────────────┘
-             ↓
-┌─────────────────────────┐
-│   4. VQC / ANSATZ       │  RY(θ) + RZ(φ) + CNOT linear · L camadas
-│                         │  Gradientes: parameter-shift rule
-└────────────┬────────────┘
-             ↓
-┌─────────────────────────┐
-│   5. MEDIÇÃO (Pauli-Z)  │  ⟨Z⟩ → sigmoid → P(nódulo)
-└────────────┬────────────┘
-             ↓
-    [ Nódulo / Normal ]
+[ Imagem de Tórax 224×224 ]
+         ↓
+┌────────────────────────────┐
+│   PRÉ-PROCESSAMENTO        │  Resize · Normalização ImageNet · Grayscale→RGB
+└─────────────┬──────────────┘
+              ↓
+┌────────────────────────────┐
+│   CNN  (backbone clássico) │  ResNet-18 → 512 features
+│                            │  Reducer: Linear(512→n_qubits) + Tanh × π
+└─────────────┬──────────────┘
+              ↓   ── FRONTEIRA QUÂNTICA ──
+┌────────────────────────────┐
+│   ANGLE ENCODING           │  RY(xᵢ)|0⟩  para cada qubit i ∈ [0, n)
+└─────────────┬──────────────┘
+              ↓
+┌────────────────────────────┐
+│   VQC / ANSATZ  (L layers) │  RY(θ) + RZ(φ) + CNOT linear
+│                            │  Gradientes: parameter-shift rule
+└─────────────┬──────────────┘
+              ↓
+┌────────────────────────────┐
+│   MEDIÇÃO  ⟨Pauli-Z⟩       │  ⟨Z⟩ ∈ [−1, 1] → BCEWithLogitsLoss
+└─────────────┬──────────────┘
+              ↓
+     [ Normal / Nódulo ]
 ```
 
-**Frameworks:** PennyLane 0.44+ · PyTorch 2.10+ · Qiskit Runtime (Cenário 4)
+**Frameworks:** PennyLane 0.44 · PyTorch 2.10 · Qiskit Runtime (Cenário 4)
 
 ---
 
@@ -83,86 +78,106 @@ Este repositório implementa e avalia uma arquitetura híbrida **CNN-VQC** (*Con
 ```
 qnn_experimentos/
 │
-├── experimento1.py          # Cenário 1 — Comparação direta CNN-VQC vs baselines
-├── experimento2.py          # Cenário 2 — Impacto do número de qubits
-├── experimento3.py          # Cenário 3 — Escalabilidade por volume de dados
-├── experimento4.py          # Cenário 4 — Hardware quântico real (IBM Quantum)
+├── experimento1.py           # Cenário 1 — Comparação direta CNN-VQC vs baselines
+├── experimento2.py           # Cenário 2 — Impacto do número de qubits e camadas
+├── experimento3.py           # Cenário 3 — Escalabilidade por volume de dados
+├── experimento4.py           # Cenário 4 — Hardware quântico real (IBM Quantum)
+├── experimento5.py           # Cenário 5 — QCNN pura + generalização poucos dados
 │
 ├── data/
-│   └── README_datasets.md   # Instruções de download dos datasets
+│   └── README_datasets.md    # Instruções de download e organização dos datasets
 │
-├── results/
+├── results/                  # ← gerado automaticamente ao rodar os scripts
 │   ├── resultados_cenario1.csv
 │   ├── resultados_cenario2.csv
 │   ├── resultados_cenario3.csv
 │   ├── resultados_cenario4.csv
+│   ├── resultados_cenario5.csv
 │   ├── curvas_roc_cenario1.png
+│   ├── circuito_vqc_4q.png
+│   ├── circuito_vqc_8q.png
+│   ├── circuito_vqc_ascii.txt
+│   ├── heatmap_auc_cenario2.png
+│   ├── heatmap_tempo_cenario2.png
+│   ├── heatmap_params_cenario2.png
+│   ├── circuito_qubits_grid.png
 │   ├── escalabilidade_cenario3.png
-│   └── simulador_vs_hardware_cenario4.png
+│   ├── simulador_vs_hardware_cenario4.png
+│   └── generalizacao_qcnn_cenario5.png
 │
-├── logs/
+├── logs/                     # ← gerado automaticamente ao rodar os scripts
 │   ├── log_experimento1.txt
 │   ├── log_experimento2.txt
 │   ├── log_experimento3.txt
-│   └── log_experimento4.txt
+│   ├── log_experimento4.txt
+│   └── log_experimento5.txt
 │
-├── requirements.txt         # Dependências Python (simulação)
-├── requirements_qiskit.txt  # Dependências adicionais (Cenário 4)
-├── environment.yml          # Ambiente Conda completo
+├── checkpoints/              # ← gerado automaticamente (modelos por fold)
+│
+├── requirements.txt          # Dependências Python — Cenários 1, 2, 3 e 5
+├── requirements_qiskit.txt   # Dependências adicionais — Cenário 4 (IBM Quantum)
+├── environment.yml           # Ambiente Conda completo reprodutível
 └── README.md
 ```
 
----
-
-## Pré-requisitos
-
-| Componente | Versão mínima |
-|---|---|
-| Python | 3.10 |
-| CUDA | 12.8 (para GPU NVIDIA) |
-| GPU | NVIDIA RTX 5060 ou superior |
-| RAM | 16 GB (32 GB recomendado) |
-| Disco | 50 GB livres (datasets) |
+> **Nota:** As pastas `results/`, `logs/` e `checkpoints/` são criadas automaticamente na primeira execução de qualquer script. Não é necessário criá-las manualmente.
 
 ---
 
-## Instalação
+## Pré-requisitos e Instalação
 
-**1. Clonar o repositório:**
+### Requisitos de hardware
+
+| Componente | Mínimo | Testado |
+|---|---|---|
+| Python | 3.10 | 3.13 |
+| CUDA | 11.8 | 12.8 |
+| GPU NVIDIA | RTX 3060 | RTX 5060 |
+| RAM | 16 GB | 32 GB |
+| Disco livre | 20 GB | 50 GB |
+
+### Opção A — pip + venv (recomendado)
+
 ```bash
+# 1. Clonar
 git clone https://github.com/rsdesouza/qnn-experimentos.git
 cd qnn-experimentos
-```
 
-**2. Criar ambiente virtual:**
-```bash
-python -m venv venv
+# 2. Criar ambiente virtual
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # Linux / macOS
 
-# Windows
-venv\Scripts\activate
-
-# Linux / macOS
-source venv/bin/activate
-```
-
-**3. Instalar dependências (com suporte a GPU):**
-```bash
-# PyTorch com CUDA 12.8
+# 3. PyTorch com CUDA 12.8 — instalar ANTES do requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
-# Demais dependências
+# 4. Demais dependências (Cenários 1, 2, 3 e 5)
 pip install -r requirements.txt
+
+# 5. Somente para o Cenário 4 (IBM Quantum)
+pip install -r requirements_qiskit.txt
 ```
 
-**4. Verificar instalação:**
+### Opção B — Conda
+
 ```bash
-python -c "import torch; print('CUDA:', torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+conda env create -f environment.yml
+conda activate qnn-experimentos
+
+# PyTorch com CUDA 12.8 (pip, pois conda pode não ter cu128)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+```
+
+### Verificar instalação
+
+```bash
+python -c "import torch; print('CUDA:', torch.cuda.is_available(), '|', torch.cuda.get_device_name(0))"
 python -c "import pennylane as qml; print('PennyLane:', qml.__version__)"
 ```
 
 Saída esperada:
 ```
-CUDA: True  NVIDIA GeForce RTX 5060
+CUDA: True | NVIDIA GeForce RTX 5060
 PennyLane: 0.44.1
 ```
 
@@ -170,14 +185,16 @@ PennyLane: 0.44.1
 
 ## Datasets
 
-| Dataset | Modalidade | Volume | Uso | Download |
+| Dataset | Modalidade | Volume | Cenários | Download |
 |---|---|---|---|---|
-| **PneumoniaMNIST** | Raio-X | 5.856 imgs | Cenários 1 e 2 (automático) | `medmnist` (pip) |
-| **NIH ChestX-ray14** | Raio-X | 112.120 imgs | Cenários 1, 2 e 3 | [Kaggle](https://www.kaggle.com/datasets/nih-chest-xrays/data) |
-| **LIDC-IDRI** | TC 3D | 1.018 TCs | Cenário 1 | [TCIA](https://cancerimagingarchive.net/collection/lidc-idri) |
-| **MIMIC-CXR-JPG** | Raio-X | 377.110 imgs | Cenário 3 | [PhysioNet](https://physionet.org/content/mimic-cxr-jpg) *(requer credencial CITI)* |
+| **PneumoniaMNIST** | Raio-X | 5.856 imgs | 1, 2 e 5 | Automático via `medmnist` |
+| **NIH ChestX-ray14** | Raio-X | 112.120 imgs | 1, 2 e 3 | [Kaggle](https://www.kaggle.com/datasets/nih-chest-xrays/data) |
+| **LIDC-IDRI** | TC 3D | 1.018 TCs | 1 | [TCIA](https://cancerimagingarchive.net/collection/lidc-idri) |
+| **MIMIC-CXR-JPG** | Raio-X | 377.110 imgs | 3 | [PhysioNet](https://physionet.org/content/mimic-cxr-jpg) *(credencial CITI)* |
 
-> Os scripts utilizam **PneumoniaMNIST por padrão** (download automático via `medmnist`), permitindo execução imediata sem cadastros. Para substituir pelo NIH ChestX-ray14 ou LIDC-IDRI, edite o bloco `Dataset` em cada script — a arquitetura CNN-VQC e os demais componentes não precisam de alteração.
+> Todos os scripts utilizam **PneumoniaMNIST por padrão** (download automático, sem cadastro), permitindo execução imediata. Para trocar de dataset, edite apenas o bloco `Dataset` em cada script — a arquitetura CNN-VQC não precisa de alteração.
+
+Instruções detalhadas de download e organização: [`data/README_datasets.md`](data/README_datasets.md)
 
 ---
 
@@ -185,29 +202,15 @@ PennyLane: 0.44.1
 
 ### Cenário 1 — Comparação Direta
 
-Avalia acurácia, sensibilidade, especificidade, F1-score e AUC-ROC do CNN-VQC versus baselines clássicos em classificação binária de nódulos pulmonares, com validação cruzada 5-fold.
+Compara CNN-VQC (4q e 8q) com ResNet-18, EfficientNet-B0 e CNN customizada em validação cruzada 5-fold, avaliando acurácia, sensibilidade, especificidade, F1-score e AUC-ROC.
 
-**Modelos comparados:**
-- CNN-VQC (4 qubits)
-- CNN-VQC (8 qubits)
-- ResNet-18
-- EfficientNet-B0
-- CNN Customizada (3 blocos convolucionais)
-
-**Executar:**
 ```bash
 python experimento1.py
 ```
 
-**Saídas geradas:**
-```
-results/resultados_cenario1.csv   → Tabela 1 da dissertação
-results/curvas_roc_cenario1.png   → Figura 4 da dissertação
-logs/log_experimento1.txt         → Log completo de treinamento
-```
+**Tempo estimado (RTX 5060 + Ryzen 7 5700X):**
 
-**Tempo estimado (RTX 5060):**
-| Modelo | Tempo por fold | Total (5 folds) |
+| Modelo | Por fold | 5 folds |
 |---|---|---|
 | CNN-VQC (4 qubits) | ~25 min | ~2 h |
 | CNN-VQC (8 qubits) | ~55 min | ~4,5 h |
@@ -219,81 +222,89 @@ logs/log_experimento1.txt         → Log completo de treinamento
 
 ### Cenário 2 — Impacto do Número de Qubits
 
-Análise de sensibilidade variando qubits em {4, 8, 12} e camadas do ansatz em {1, 2}, avaliando acurácia, AUC-ROC, tempo de treinamento e número de parâmetros.
+Análise de sensibilidade em grade 3×3: qubits ∈ {4, 8, 12} × camadas ∈ {1, 2, 3}. Gera heatmaps de AUC-ROC, tempo de treino e contagem de parâmetros para identificar a configuração ótima.
 
 ```bash
 python experimento2.py
 ```
 
-**Saídas:**
-```
-results/resultados_cenario2.csv   → Tabela 2 da dissertação
-```
+> Usa imagens 64×64 e 3-fold para manter viável as 9 configurações. Total estimado: 8–14 h.
 
 ---
 
 ### Cenário 3 — Escalabilidade
 
-Avalia tempo de treinamento e inferência variando o volume de dados em {1.000, 5.000, 10.000, 50.000 imagens}, comparando CNN-VQC e ResNet-18.
+Avalia tempo de treinamento e inferência do CNN-VQC versus ResNet-18 em função do volume de dados: {1k, 5k, 10k, 50k imagens} sobre o MIMIC-CXR-JPG.
 
 ```bash
 python experimento3.py
-```
-
-**Saídas:**
-```
-results/resultados_cenario3.csv        → Tabela 3 da dissertação
-results/escalabilidade_cenario3.png    → Figura 5 da dissertação
 ```
 
 ---
 
 ### Cenário 4 — Hardware Quântico Real (opcional)
 
-Executa o VQC no IBM Quantum via Qiskit Runtime, comparando o desempenho em simulador versus hardware real com mitigação de erros por **Zero Noise Extrapolation (ZNE)**.
+Executa o VQC treinado no Cenário 1 diretamente no IBM Sherbrooke via Qiskit Runtime, comparando desempenho com e sem mitigação de erros por Zero Noise Extrapolation (ZNE).
 
-**Instalar dependências adicionais:**
-```bash
-pip install -r requirements_qiskit.txt
-```
-
-**Configurar credencial IBM Quantum:**
+**Configurar token IBM Quantum (gratuito em https://quantum.ibm.com):**
 ```bash
 python -c "
 from qiskit_ibm_runtime import QiskitRuntimeService
 QiskitRuntimeService.save_account(channel='ibm_quantum', token='SEU_TOKEN_AQUI')
 "
 ```
-> Token gratuito disponível em: https://quantum.ibm.com
 
-**Executar:**
 ```bash
 python experimento4.py
 ```
 
-**Saídas:**
-```
-results/resultados_cenario4.csv                  → Tabela 4 da dissertação
-results/simulador_vs_hardware_cenario4.png        → Figura 6 da dissertação
+---
+
+### Cenário 5 — QCNN e Generalização com Poucos Dados
+
+Avalia uma QCNN pura (sem backbone clássico) com camadas convolucionais e pooling quânticos, testando a capacidade de generalização com conjuntos de treinamento reduzidos (20 a 2.000 amostras). Verifica empiricamente o limite teórico O(poly(log n)) de Caro et al. (2022).
+
+Baseado em: [Generalization in QML from few training data](https://pennylane.ai/qml/demos/tutorial_learning_few_data) e [QCNN — PennyLane Glossary](https://pennylane.ai/qml/glossary/qcnn).
+
+```bash
+python experimento5.py
 ```
 
 ---
 
-## Resultados
+## Artefatos por Experimento
 
-Os arquivos CSV gerados seguem o formato abaixo e podem ser copiados diretamente para as tabelas da dissertação:
+Tabela completa de todos os arquivos gerados em `results/` e `logs/`:
 
-```
-Modelo,Acurácia (%),Sensibil. (%),Especif. (%),F1-score,AUC-ROC,Parâmetros,Tempo treino(s)
-CNN-VQC (4 qubits),85.3 ± 1.2,83.1 ± 2.1,87.4 ± 1.8,0.8421 ± 0.013,0.9102 ± 0.011,8,4512
-...
-```
+| Script | Arquivo gerado | Correspondência na dissertação |
+|---|---|---|
+| `experimento1.py` | `results/resultados_cenario1.csv` | Tabela 1 |
+| `experimento1.py` | `results/curvas_roc_cenario1.png` | Figura 4 |
+| `experimento1.py` | `results/circuito_vqc_4q.png` | Figura 2a |
+| `experimento1.py` | `results/circuito_vqc_8q.png` | Figura 2b |
+| `experimento1.py` | `results/circuito_vqc_ascii.txt` | — (referência interna) |
+| `experimento1.py` | `logs/log_experimento1.txt` | — |
+| `experimento2.py` | `results/resultados_cenario2.csv` | Tabela 2 |
+| `experimento2.py` | `results/heatmap_auc_cenario2.png` | Figura 3a |
+| `experimento2.py` | `results/heatmap_tempo_cenario2.png` | Figura 3b |
+| `experimento2.py` | `results/heatmap_params_cenario2.png` | Figura 3c |
+| `experimento2.py` | `results/circuito_qubits_grid.png` | Figura 3d |
+| `experimento2.py` | `logs/log_experimento2.txt` | — |
+| `experimento3.py` | `results/resultados_cenario3.csv` | Tabela 3 |
+| `experimento3.py` | `results/escalabilidade_cenario3.png` | Figura 5 |
+| `experimento3.py` | `logs/log_experimento3.txt` | — |
+| `experimento4.py` | `results/resultados_cenario4.csv` | Tabela 4 |
+| `experimento4.py` | `results/simulador_vs_hardware_cenario4.png` | Figura 6 |
+| `experimento4.py` | `logs/log_experimento4.txt` | — |
+| `experimento5.py` | `results/resultados_cenario5.csv` | Tabela 5 |
+| `experimento5.py` | `results/generalizacao_qcnn_cenario5.png` | Figura 7 |
+| `experimento5.py` | `logs/log_experimento5.txt` | — |
 
 ---
 
 ## Reprodutibilidade
 
-Todos os experimentos utilizam seed fixa para garantir reprodutibilidade:
+Todos os scripts utilizam semente global fixa:
 
 ```python
 SEED = 42
@@ -301,21 +312,28 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 ```
 
-**Versões exatas utilizadas:**
+O sistema de **cache por fold** (`checkpoints/`) permite retomar experimentos interrompidos sem reprocessar folds já concluídos. Para forçar reexecução completa, apague a pasta `checkpoints/`.
+
+### Versões exatas testadas
 
 | Biblioteca | Versão |
 |---|---|
-| Python | 3.10 |
+| Python | 3.13 |
 | PyTorch | 2.10.0+cu128 |
-| PennyLane | 0.44.1 |
 | torchvision | 0.25.0+cu128 |
+| PennyLane | 0.44.1 |
+| pennylane-lightning | 0.44.1 |
 | scikit-learn | 1.3.2 |
 | NumPy | 1.26.0 |
 | pandas | 2.1.0 |
 | matplotlib | 3.8.0 |
+| seaborn | 0.13.2 |
 | medmnist | 3.0.0 |
-| qiskit | 1.x (Cenário 4) |
-| qiskit-ibm-runtime | 0.20+ (Cenário 4) |
+| pylatexenc | 2.10 |
+| qiskit | 1.2.4 *(Cenário 4)* |
+| qiskit-ibm-runtime | 0.29.0 *(Cenário 4)* |
+| mitiq | 0.38.0 *(Cenário 4)* |
+| pennylane-qiskit | 0.39.0 *(Cenário 4)* |
 
 ---
 
@@ -326,9 +344,15 @@ np.random.seed(SEED)
 | **SO** | Microsoft Windows 11 Pro (Build 26200) |
 | **CPU** | AMD Ryzen 7 5700X · 8 núcleos · 16 threads · 3,4 GHz |
 | **GPU** | NVIDIA GeForce RTX 5060 · CUDA 12.8 |
-| **RAM** | 32 GB |
-| **Simulador quântico** | `lightning.qubit` (PennyLane) |
-| **Backend IBM (Cenário 4)** | `ibm_sherbrooke` via Qiskit Runtime |
+| **RAM** | 32 GB DDR4 |
+| **Simulador quântico** | `lightning.qubit` (PennyLane) — C++, alta performance |
+| **Backend IBM (Cenário 4)** | `ibm_sherbrooke` · 127 qubits · Eagle r3 |
+
+**Otimizações implementadas:**
+- CNN treinada na GPU com AMP float16 (`torch.amp.autocast`)
+- VQC paralelizado nos 16 threads do Ryzen via `ThreadPoolExecutor`
+- `num_workers=0` no DataLoader (obrigatório Windows/Python 3.13)
+- Early stopping + checkpoint por fold para retomada sem reprocessamento
 
 ---
 
@@ -347,6 +371,13 @@ Se este repositório contribuiu para sua pesquisa, por favor cite:
   type    = {Dissertação (Mestrado em Engenharia de Software)}
 }
 ```
+
+**Trabalhos relacionados referenciados neste projeto:**
+
+- CEREZO, M. et al. Variational quantum algorithms. *Nature Reviews Physics*, v. 3, p. 625–644, 2021.
+- CARO, M. C. et al. Generalization in quantum machine learning from few training data. *Nature Communications*, v. 13, n. 4919, 2022.
+- CONG, I. et al. Quantum convolutional neural networks. *Nature Physics*, v. 15, p. 1273–1278, 2019.
+- MCCLEAN, J. R. et al. Barren plateaus in quantum neural network training landscapes. *Nature Communications*, v. 9, n. 4812, 2018.
 
 ---
 
