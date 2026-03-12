@@ -1,0 +1,31 @@
+# =============================================================================
+# requirements_qiskit.txt — Dependências adicionais para o Cenário 4
+#                           (Execução em Hardware Quântico Real — IBM Quantum)
+# =============================================================================
+# Instalar APÓS o requirements.txt base:
+#   pip install -r requirements_qiskit.txt
+#
+# ATENÇÃO: Qiskit e PennyLane-Qiskit exigem Python >=3.10 e podem conflitar
+# com versões antigas de numpy/scipy. Recomenda-se ambiente virtual separado.
+#
+# Token gratuito IBM Quantum: https://quantum.ibm.com
+# Backend utilizado: ibm_sherbrooke (127 qubits, Eagle r3)
+# =============================================================================
+
+# ── SDK IBM Quantum ───────────────────────────────────────────────────────────
+qiskit==1.2.4                    # SDK principal Qiskit Terra
+qiskit-ibm-runtime==0.29.0       # acesso aos backends IBM via Runtime API
+
+# ── Transpilação e otimização de circuitos ────────────────────────────────────
+qiskit-transpiler-service==0.4.1 # transpilação otimizada para hardware real
+
+# ── Mitigação de Erros (Cenário 4 — ZNE) ─────────────────────────────────────
+mitiq==0.38.0                    # Zero Noise Extrapolation (ZNE) e outros métodos
+                                 # documentação: https://mitiq.readthedocs.io
+
+# ── Plugin PennyLane ↔ Qiskit ─────────────────────────────────────────────────
+pennylane-qiskit==0.39.0         # device 'qiskit.ibmq' e 'qiskit.remote'
+                                 # permite rodar qnodes PennyLane no IBM Quantum
+
+# ── Utilitários de serialização ───────────────────────────────────────────────
+qiskit-aer==0.15.0               # simulador local Qiskit (referência antes do hardware)
