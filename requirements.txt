@@ -1,11 +1,42 @@
-torch
-torchvision
-pennylane
-pennylane-lightning
-scikit-learn
-matplotlib
-pandas
-numpy
-tqdm
-medmnist
-pylatexenc
+# =============================================================================
+# requirements.txt — Dependências para Cenários 1, 2, 3 e 5
+# =============================================================================
+# Instalar nesta ordem:
+#
+#   1. PyTorch com CUDA 12.8 (ANTES deste arquivo):
+#      pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#
+#   2. Demais dependências:
+#      pip install -r requirements.txt
+#
+# Versões escolhidas com wheel pré-compilado para Python 3.13 + Windows x64.
+# Não fixar versões antigas (2.1.x, 1.26.x, 1.3.x) — não têm wheel cp313
+# e tentam compilar do fonte, exigindo MSVC / Build Tools.
+#
+# Ambiente testado: Python 3.13 · Windows 11 · CUDA 12.8 · RTX 5060
+# =============================================================================
+
+# ── Computação Quântica ───────────────────────────────────────────────────────
+pennylane==0.44.0
+pennylane-lightning==0.44.0      # versão máxima disponível no PyPI
+
+# ── Machine Learning / Métricas ───────────────────────────────────────────────
+scikit-learn==1.6.1              # wheel cp313 disponível a partir da 1.4.x
+
+# ── Dados ─────────────────────────────────────────────────────────────────────
+numpy==2.2.5                     # wheel cp313 disponível a partir da 2.0.x
+pandas==2.2.3                    # wheel cp313 disponível a partir da 2.2.x
+                                 # (2.1.x e anteriores não têm wheel cp313)
+
+# ── Visualização ─────────────────────────────────────────────────────────────
+matplotlib==3.9.4                # wheel cp313 disponível a partir da 3.9.x
+seaborn==0.13.2                  # pure-python — qualquer versão funciona
+
+# ── Utilitários ───────────────────────────────────────────────────────────────
+tqdm==4.67.1
+
+# ── Dataset médico ────────────────────────────────────────────────────────────
+medmnist==3.0.2
+
+# ── Visualização de circuitos quânticos ──────────────────────────────────────
+pylatexenc==2.10                 # necessário para qml.draw_mpl() renderizar LaTeX
