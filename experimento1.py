@@ -29,19 +29,20 @@ Pipeline do modelo híbrido
 
 Saídas geradas
 --------------
-  resultados_cenario1.csv     — Tabela 1 da dissertação
-  curvas_roc_cenario1.png     — Figura 4 (Curvas ROC)
-  circuito_vqc_4q.png         — Figura 2a (diagrama VQC 4 qubits)
-  circuito_vqc_8q.png         — Figura 2b (diagrama VQC 8 qubits)
-  circuito_vqc_ascii.txt      — Representação textual dos circuitos
-  log_experimento1.txt        — Log completo de treinamento
+  results/resultados_cenario1.csv   — Tabela 1 da dissertação
+  results/curvas_roc_cenario1.png   — Figura 4 (Curvas ROC)
+  results/circuito_vqc_4q.png       — Figura 2a (diagrama VQC 4 qubits)
+  results/circuito_vqc_8q.png       — Figura 2b (diagrama VQC 8 qubits)
+  results/circuito_vqc_ascii.txt    — Representação textual dos circuitos
+  logs/log_experimento1.txt         — Log completo de treinamento
 
 Otimizações de desempenho
 -------------------------
-  GPU  : CNN treinada na RTX 5060 com AMP (float16)
-  CPU  : VQC paralelizado nos 16 threads do Ryzen 7 5700X
-  I/O  : DataLoader com pin_memory para transferência GPU eficiente
-  Treino: Early stopping + checkpoint por fold
+  GPU     : CNN treinada na RTX 5060 com AMP (float16)
+  Quântico: VQC executado sequencialmente — lightning.qubit paraleliza
+            internamente em C++ usando todos os cores disponíveis
+  I/O     : DataLoader com pin_memory para transferência GPU eficiente
+  Treino  : Early stopping + checkpoint por fold
 
 Requisitos (instalar UMA vez no venv ativo)
 -------------------------------------------
@@ -63,8 +64,6 @@ import sys
 import time
 import logging
 import warnings
-from concurrent.futures import ThreadPoolExecutor
-
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -98,9 +97,9 @@ LR             = 1e-3   # taxa de aprendizado Adam
 K_FOLDS        = 5      # número de folds para validação cruzada estratificada
 EARLY_STOP     = 7      # paciência do early stopping (épocas sem melhora)
 NUM_WORKERS    = 0      # OBRIGATÓRIO 0 no Windows — evita RuntimeError de spawn
-VQC_THREADS    = 16     # threads para paralelizar VQC (Ryzen 7 5700X = 16 threads)
-OUT_DIR        = '.'    # diretório de saída para CSVs e imagens
-CHECKPOINT_DIR = 'checkpoints'   # diretório de checkpoints por fold
+OUT_DIR        = 'results'    # diretório de saída para CSVs e imagens
+LOG_DIR        = 'logs'          # diretório de logs de treinamento
+CHECKPOINT_DIR = 'checkpoints'   # diretório de checkpoints por fold (temporário)
 
 # ── Detecção automática de GPU ─────────────────────────────────────────────────
 # AMP (Automatic Mixed Precision) converte operações para float16 na GPU,
@@ -329,12 +328,16 @@ class CNN_VQC(nn.Module):
     5. Medição Pauli-Z:
        ⟨Z⟩ ∈ [-1, 1] → logit para BCEWithLogitsLoss
 
-    Nota sobre paralelismo
-    ----------------------
-    O PennyLane 0.44+ não suporta batching nativo no TorchLayer.
-    O forward usa ThreadPoolExecutor para processar as amostras do
-    batch em paralelo nos 16 threads do Ryzen 7 5700X, substituindo
-    o loop sequencial que causava ~3.6s/batch (→ ~0.25s com threads).
+    Nota sobre thread safety e paralelismo
+    ----------------------------------------
+    O PennyLane 0.44 tem validação estrita do estado do qnode: chamadas
+    simultâneas ao mesmo TorchLayer de threads diferentes corrompem o
+    estado interno do circuito, causando QuantumFunctionError.
+
+    Por isso, as amostras do batch são processadas SEQUENCIALMENTE pelo VQC.
+    O paralelismo ocorre naturalmente dentro do lightning.qubit: o simulador
+    C++ utiliza todos os cores disponíveis (Ryzen 7 5700X) para a simulação
+    do estado quântico de cada amostra individualmente.
 
     Parâmetros
     ----------
@@ -380,12 +383,13 @@ class CNN_VQC(nn.Module):
         # Parte clássica: extração de features na GPU (float16 com AMP)
         angles = self.reducer(self.cnn(x)) * np.pi   # (batch, n_qubits)
 
-        # Parte quântica: VQC em paralelo na CPU via ThreadPoolExecutor
-        # Cada amostra do batch é processada por uma thread independente,
-        # aproveitando todos os núcleos do Ryzen 7 5700X.
+        # Parte quântica: amostras processadas SEQUENCIALMENTE pelo VQC.
+        # Não usar ThreadPoolExecutor: o PennyLane 0.44 não é thread-safe
+        # quando múltiplas threads chamam o mesmo TorchLayer simultaneamente
+        # (QuantumFunctionError: "All measurements must be returned in order").
+        # O lightning.qubit já paraleliza a simulação internamente em C++.
         samples = [angles[i].cpu().detach() for i in range(angles.shape[0])]
-        with ThreadPoolExecutor(max_workers=VQC_THREADS) as executor:
-            q_out = list(executor.map(self.vqc, samples))
+        q_out   = [self.vqc(s) for s in samples]
 
         # Reconstrói tensor e move de volta para GPU
         return torch.stack(q_out).to(x.device).unsqueeze(1)
@@ -758,6 +762,8 @@ def run_experiment(
 # ══════════════════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
 
+    os.makedirs(OUT_DIR,        exist_ok=True)
+    os.makedirs(LOG_DIR,        exist_ok=True)
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 
     # ── Logger ────────────────────────────────────────────────────────────────
@@ -766,7 +772,7 @@ if __name__ == '__main__':
     fmt = logging.Formatter('%(asctime)s  %(message)s')
     for handler in [
         logging.FileHandler(
-            os.path.join(OUT_DIR, 'log_experimento1.txt'), 'w', encoding='utf-8'
+            os.path.join(LOG_DIR, 'log_experimento1.txt'), 'w', encoding='utf-8'
         ),
         logging.StreamHandler(sys.stdout)
     ]:
@@ -778,7 +784,7 @@ if __name__ == '__main__':
     log.info(f'PennyLane  : {qml.__version__}')
     log.info(f'Python     : {sys.version.split()[0]}')
     log.info(f'AMP        : {"ATIVO (float16)" if USE_AMP else "inativo (CPU)"}')
-    log.info(f'VQC threads: {VQC_THREADS} | Batch size: {BATCH_SIZE}')
+    log.info(f'Batch size : {BATCH_SIZE} | VQC: sequencial (lightning.qubit paralelo interno)')
 
     # ── Dataset ───────────────────────────────────────────────────────────────
     log.info('Carregando PneumoniaMNIST...')
