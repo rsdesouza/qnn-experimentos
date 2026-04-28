@@ -1,0 +1,7 @@
+﻿Modelo,Volume (imgs),Treino (amostras),Validacao (amostras),Parametros,Tempo treino total (s),Tempo treino/epoch (s),Tempo extrap. 50ep (s),Inferencia (ms/img),Acuracia (%),AUC-ROC
+CNN-VQC (8 qubits),200,160,40,11180648,55.3,5.53,276.5,5.667,72.5,0.4201
+ResNet-18,200,160,40,11177025,2.7,0.27,13.5,1.369,75.0,0.7241
+CNN-VQC (8 qubits),500,400,100,11180648,137.4,13.74,687.0,6.4312,71.0,0.6002
+ResNet-18,500,400,100,11177025,8.0,0.8,40.0,1.478,78.0,0.8447
+CNN-VQC (8 qubits),780,624,156,11180648,210.4,21.04,1052.0,6.193,53.85,0.4589
+ResNet-18,780,624,156,11177025,13.2,1.32,66.0,1.1985,92.95,0.9825
