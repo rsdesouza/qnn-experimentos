@@ -1,0 +1,76 @@
+2026-04-30 10:37:55,402  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:37:55,402  EXPERIMENTO 4 (TREINO) — VQC treinado em hardware quântico real
+2026-04-30 10:37:55,402  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:37:55,402  Device clássico  : cuda (NVIDIA GeForce RTX 5060)
+2026-04-30 10:37:55,403  Configuração VQC : 4 qubits × 3 camadas
+2026-04-30 10:37:55,403  Parâmetros VQC   : 24
+2026-04-30 10:37:55,403  Amostras treino  : 15
+2026-04-30 10:37:55,403  Épocas           : 1
+2026-04-30 10:37:55,403  Amostras valid.  : 30
+2026-04-30 10:37:55,403  Learning rate    : 0.2
+2026-04-30 10:37:55,403  Shots por circ.  : 1024
+2026-04-30 10:37:55,403  ZNE habilitado   : False
+2026-04-30 10:37:55,403  Backend          : (least_busy)
+2026-04-30 10:37:55,403  Circuitos treino : 735
+2026-04-30 10:37:55,404  Circuitos val.   : 30
+2026-04-30 10:37:55,404  TOTAL circuitos  : 765
+2026-04-30 10:37:55,404  
+Conectando ao IBM Quantum...
+2026-04-30 10:37:58,660    Modo dinâmico — selecionando least_busy() ...
+2026-04-30 10:38:05,666    Backend: ibm_fez | qubits: 156 | fila: 0
+2026-04-30 10:38:05,667  
+Carregando checkpoint inicial: checkpoints\CNN-VQC_4q_3l_fold0.pt
+2026-04-30 10:38:05,881    Pesos iniciais shape: (3, 4, 2)
+2026-04-30 10:38:05,881  
+Carregando PneumoniaMNIST...
+2026-04-30 10:38:08,710    Treino: 14 amostras (balanceado)
+2026-04-30 10:38:08,710    Valid.: 30 amostras (balanceado)
+2026-04-30 10:38:08,710  
+Pré-computando ângulos de Angle Encoding (CNN em GPU local)...
+2026-04-30 10:38:08,920    Ângulos pré-computados: shape=(14, 4)
+2026-04-30 10:38:08,981    Ângulos pré-computados: shape=(30, 4)
+2026-04-30 10:38:08,981  
+Configurando transpilador para o backend...
+2026-04-30 10:38:09,018  
+══════════════════════════════════════════════════════════════════════
+2026-04-30 10:38:09,018  ÉPOCA 0 — Avaliação inicial (pré-treino) no hardware
+2026-04-30 10:38:09,018  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:38:09,023      Inferência de validação (30 circuitos)...
+2026-04-30 10:38:30,692      Validação concluída em 21.7s (d7plmgk3lfgs73fg4eag)
+2026-04-30 10:38:30,695    Acc=53.33%  AUC=0.8533  Sens=100.00%  Esp=6.67%
+2026-04-30 10:38:30,695  
+══════════════════════════════════════════════════════════════════════
+2026-04-30 10:38:30,695  ÉPOCA 1/1 — passo de gradiente no hardware
+2026-04-30 10:38:30,695  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:38:30,695      Construindo 686 circuitos (14 amostras × 49 circuitos por amostra)...
+2026-04-30 10:38:30,790      Submetendo job ao backend (686 circuitos)...
+2026-04-30 10:42:31,700      Job d7plmn67g7gs73cf3peg concluído em 240.9s
+2026-04-30 10:42:31,701    Loss média : 0.8320
+2026-04-30 10:42:31,701    ‖grad‖     : 0.2096
+2026-04-30 10:42:31,701    Tempo época: 241.0s
+2026-04-30 10:42:31,706      Inferência de validação (30 circuitos)...
+2026-04-30 10:47:46,686      Validação concluída em 315.0s (d7ploic3lfgs73fg4gqg)
+2026-04-30 10:47:46,689    Acc=53.33%  AUC=0.8489  Sens=100.00%  Esp=6.67%
+2026-04-30 10:47:46,689  
+══════════════════════════════════════════════════════════════════════
+2026-04-30 10:47:46,689  CONSOLIDANDO RESULTADOS
+2026-04-30 10:47:46,689  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:47:46,693    CSV: results\resultados_cenario4_train_sem_ZNE.csv
+2026-04-30 10:47:46,696  
+ epoch     loss  accuracy  sensitivity  specificity  f1_score  auc_roc  val_time_s condicao backend
+     0      NaN 53.333333        100.0     6.666667  0.681818 0.853333   21.668453  sem_ZNE ibm_fez
+     1 0.832027 53.333333        100.0     6.666667  0.681818 0.848889  314.978993  sem_ZNE ibm_fez
+2026-04-30 10:47:46,767    Checkpoint pós-treino: checkpoints\CNN-VQC_4q_3l_hardware_sem_ZNE.pt
+2026-04-30 10:47:47,020    Figura: results\curva_treino_hardware_sem_ZNE.png
+2026-04-30 10:47:47,020  
+══════════════════════════════════════════════════════════════════════
+2026-04-30 10:47:47,021  ANÁLISE
+2026-04-30 10:47:47,021  ══════════════════════════════════════════════════════════════════════
+2026-04-30 10:47:47,021    Backend          : ibm_fez
+2026-04-30 10:47:47,021    Condição         : sem_ZNE
+2026-04-30 10:47:47,021    AUC pré-treino   : 0.8533
+2026-04-30 10:47:47,021    AUC pós-treino   : 0.8489
+2026-04-30 10:47:47,021    Δ AUC            : -0.0044
+2026-04-30 10:47:47,021    → O treino no hardware PIOROU o desempenho — efeito do ruído sobre o gradiente.
+2026-04-30 10:47:47,022  
+Experimento 4 (treino) concluído com sucesso.

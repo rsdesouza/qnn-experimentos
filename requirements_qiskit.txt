@@ -1,4 +1,64 @@
-qiskit==2.4.1
-qiskit-ibm-runtime==0.46.1
-qiskit-aer==0.17.2
-pennylane-qiskit==0.44.1
+# =============================================================================
+# requirements_qiskit.txt — Dependências adicionais para o Cenário 4
+#                           (Execução em Hardware Quântico Real — IBM Quantum)
+# =============================================================================
+# Instalar APÓS o requirements.txt base, NO MESMO ambiente virtual:
+#   pip install -r requirements_qiskit.txt
+#
+# Ambiente testado: Python 3.13 · Windows 11 · CUDA 12.8 · RTX 5060
+#
+# IMPORTANTE — pacotes REMOVIDOS desta versão e por quê:
+#
+#   mitiq:
+#     Não tem versão compatível com Python 3.13 (limite: Py 3.12). O ZNE é
+#     feito pela API nativa do qiskit-ibm-runtime (EstimatorV2.options.
+#     resilience.zne_mitigation), método oficial recomendado pela IBM.
+#
+#   qiskit-transpiler-service:
+#     Pacote DEPRECADO em 2025, e o serviço cloud requer plano Premium.
+#     O experimento usa o transpilador LOCAL nativo do Qiskit
+#     (generate_preset_pass_manager), incluído em qiskit==2.4.1.
+#
+#   pennylane-qiskit:
+#     NÃO é importado nem utilizado pelo experimento4.py — verificado por
+#     inspeção do código-fonte. O experimento usa apenas:
+#       (a) PennyLane com lightning.qubit (simulador exato)
+#       (b) Qiskit nativo + qiskit-ibm-runtime (hardware real)
+#     Não há ponte PennyLane↔Qiskit no pipeline. Manter pennylane-qiskit
+#     forçaria downgrade de qiskit-ibm-runtime para 0.45.x e qiskit para
+#     2.3.0, sem benefício funcional.
+#
+# Token gratuito IBM Quantum: https://quantum.ibm.com
+# Backend utilizado: ibm_sherbrooke (127 qubits, Eagle r3)
+# =============================================================================
+
+# ── SDK Qiskit principal (Python Stable ABI, compatível com 3.10-3.13+) ──────
+qiskit==2.4.1                    # SDK principal — wheel cp310-abi3 funciona em Py 3.13
+                                 # Inclui generate_preset_pass_manager (transpilador local)
+
+# ── IBM Quantum Runtime (acesso ao hardware real) ────────────────────────────
+qiskit-ibm-runtime==0.46.1       # versão atual com EstimatorV2 + ZNE built-in,
+                                 # compatível com Python 3.13 e Qiskit 2.4.x
+
+# ── Simulador local Qiskit (referência opcional, em adição ao lightning.qubit) ─
+qiskit-aer==0.17.2               # wheel cp313 disponível
+
+# =============================================================================
+# Sobre Zero Noise Extrapolation (ZNE) — implementação no Cenário 4
+# =============================================================================
+# O experimento4.py usa exclusivamente a API NATIVA do qiskit-ibm-runtime
+# para mitigação de erros, conforme documentação oficial IBM:
+#
+#   estimator.options.resilience_level         = 2
+#   estimator.options.resilience.zne_mitigation = True
+#   estimator.options.resilience.zne.noise_factors = [1.0, 3.0, 5.0]
+#   estimator.options.resilience.zne.extrapolator = ['linear', 'exponential']
+#
+# Esta API implementa internamente:
+#   - Digital gate folding (amplificação de ruído por inserção de UU†)
+#   - Extrapolação polinomial e exponencial para o limite de zero ruído
+#   - TREX (readout error mitigation) habilitado por padrão no level 2
+#
+# Não há necessidade de mitiq como dependência externa.
+# Referência: https://quantum.cloud.ibm.com/docs/en/guides/error-mitigation-and-suppression-techniques
+# =============================================================================
